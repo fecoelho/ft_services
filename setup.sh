@@ -43,3 +43,6 @@ kubectl apply -f ./srcs/influxdb/influxdb.yaml
 kubectl apply -f ./srcs/grafana/grafana.yaml
 
 echo -e "You can now proceed."
+
+# Open Dashboard
+minikube dashboard
