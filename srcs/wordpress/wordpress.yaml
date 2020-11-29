@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: wordpress
+    spec:
+      containers:
+      - name: wordpress
+        image: wordpress-img
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5050
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+        - name: USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: wordpress-secret
+              key: username
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: wordpress-secret
+              key: password
+        volumeMounts:
+        - name: wp-nginx-conf
+          mountPath: /etc/nginx/conf.d/
+      volumes:
+      - name: wp-nginx-conf
+        configMap:
+          name: wordpress-config
+          items:
+          - key: default.conf
+            path: default.conf
+              
+---          
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    metallb.universe.tf/allow-shared-ip: shared
+  name: wordpress
+spec:
+  ports:
+  - name: http
+    protocol: TCP
+    port: 5050
+    targetPort: 5050
+  selector:
+    app: wordpress
+  type: LoadBalancer
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: wordpress-secret
+stringData:
+  username: admin
+  password: admin
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wordpress-config
+data:
+  default.conf: |
+    server {
+      server_name _;
+      root /var/www/wordpress;
+      index index.php
+      location / {
+        try_files $uri $uri/ =404;
+      }
+    }

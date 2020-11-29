@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ftps
+spec:
+  selector:
+    matchLabels:
+      app: ftps
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      name: ftps
+      labels:
+        app: ftps
+    spec:
+      containers:
+      - name: ftps
+        image: ftps-img
+        imagePullPolicy: Never
+        ports:
+        - name: ftps-connection
+          containerPort: 21
+        - name: passv-mode
+          containerPort: 30000
+        env:
+        - name: USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: wordpress-secret
+              key: username
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: wordpress-secret
+              key: password
+        volumeMounts:
+        - name: ftps-config
+          mountPath: /etc/vsftpd
+      volumes:
+        - name: ftps-config
+          configMap:
+            name: ftps-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    metallb.universe.tf/allow-shared-ip: shared
+  name: ftps
+spec:
+  ports:
+  - name: ftps-connection
+    port: 21
+  - name: passv-mode
+    port: 30000
+  selector:
+    app: ftps
+  type: LoadBalancer
+---
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: ftps-config
+  data:
+    vsftpd.conf: |
+      anonymous_enable=NO
+      local_enable=YES
+      write_enable=YES
+      local_umask=022
+      dirmessage_enable=YES
+      xferlog_enable=YES
+      xferlog_std_format=YES
+      chroot_local_user=YES
+      allow_writeable_chroot=YES
+      connect_from_port_20=YES
+      pam_service_name=vsftpd
+      seccomp_sandbox=NO
+      ssl_enable=YES
+      allow_anon_ssl=NO
+      force_local_data_ssl=NO
+      force_local_logins_ssl=NO
+      require_ssl_reuse=YES
+      ssl_ciphers=HIGH
+      pasv_enable=YES
+      pasv_promiscuous=YES
+      pasv_address=192.168.49.3
+      pasv_min_port=30000
+      pasv_max_port=30000
+      rsa_cert_file=/etc/ssl/certs/vsftpd.crt
+      rsa_private_key_file=/etc/ssl/private/vsftpd.key
