@@ -1,5 +1,7 @@
 # ft_services
 O projeto consiste na implementação de uma infraestrutura com diversos serviços utilizando kubernetes. Projeto escolar realizado na [42 São Paulo](https://www.42sp.org.br/).
+<img src="https://github.com/fecoelho/ft_services/blob/main/diagrama-ft_services.png" />
+
 ---
 ### ToC 📋
 
